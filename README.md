@@ -3,7 +3,7 @@
 ## Learning Goals
 
 - Reduce repeated code and enhance objects using inheritance.
-  - Use `super` to call methods on a parent class from the child class.
+  - Use decorators to add functionality to our functions.
 - Accomplish complex programming tasks using knowledge from previous modules.
 
 ***
@@ -30,96 +30,83 @@ without modifying its structure.
 
 ## Introduction
 
-So far, we've seen the benefits of using inheritance to create a group of
-classes that share certain characteristics and behaviors. However, up until now,
-the implementation of shared characteristics has been somewhat rigid. If class
-`Student` inherits from class `User`, we can choose to either allow the
-`Student` class to inherit a certain method from `User` or overwrite that method
-with another implementation that is specific to `Student`.
+In this module, we have explored a number of ways to live by the **D**on't
+**R**epeat **Y**ourself principle of object-oriented programming. Inheritance
+allows us to create classes with functionality from parent classes, and the
+`super()` function allows us to extend that functionality when we need to
+without rewriting any code.
 
-But what if there is a method in the parent class that we want our child to
-share _some_ of the functionality of? Or what if we want our child class to
-inherit a method from the parent and then augment it in some way? We can achieve
-this with the use of the `super` keyword.
+**Decorators** provide us yet another way to write DRY code through providing
+extra functionality to _functions._
 
 ***
 
-## Using `super` to Supercharge Inheritance
+## Functions Are First Class Objects
 
-Let's say we are working on an education app in which users are either students
-or teachers. We have a parent, `User` class, that both our `Student` and
-`Teacher` classes inherit from.
-
-Our `User` class has a method, `log_in()`, that sets an instance variable,
-`self.logged_in` equal to `True`.
+While we primarily think of functions as procedures, it's important to remember
+that in Python, they are objects too. Just like any other object, they can be
+saved as variables, passed as arguments to other functions, and returned by
+functions:
 
 ```py
-class User:
-    def log_in(self):
-        self.logged_in = True
+def hello(name):
+    return "Hello " + name
+
+print(hello("Guido"))
+# Hello Guido
+
+greeting = hello
+print(greeting("Guido"))
+# Hello Guido
+
+def salutation(func):
+    return func("Guido")
+
+print(salutation(greeting))
+# Hello Guido.
 ```
 
-However, when a student logs into our app, we need to not only set their logged
-in attribute to `True`, we need to set their "in class" attribute to `True` as
-well. We could simply edit the `log_in()` method in the `User` class to account
-for this. But that doesn't make sense here. Remember that both `Student` and
-`Teacher` inherit from `User`. Teachers don't need to indicate that they are
-"in class", so we don't want to alter the `log_in()` method of our parent class
-and inadvertently give teachers some behavior that they don't want or need.
-
-Instead, we can augment, or supercharge, the `log_in()` method _inside_ of the
-`Student` class.
-
-Let's take a look:
+Furthermore, we can define functions inside of other functions, just as we
+could any other object. We call these **inner functions**:
 
 ```py
-class Student(User):
-    def log_in(self):
-        super().log_in()
-        self.in_class = True
+def hello(name):
+    print("Hello from the hello() function.")
+
+    def greet():
+        print("Greetings from the greet() function.")
+
+    return greet
 ```
 
-Here, we re-define the `log_in()` method and tell it to inherit any
-functionality of the `log_in()` method defined in the parent, or "superclass,"
-which is `User`.
-
-In the `log_in()` method above, the `super` keyword will **call on the
-`log_in()` method as defined in the superclass**. _Then_, the additional code
-that we're adding into our `Student.log_in()` method will also run. We have
-therefore supercharged our `log_in()` method, for the `Student` class only.
-
-You can see for yourself by adding a `print()` statement in the `log_in()`
-methods for both the `User` and `Student` classes. Run this code in the Python
-shell or in a new Python file:
+What do you think we'll see if we `print()` the result of our `hello()`
+function?
 
 ```py
-class User:
-    def log_in(self):
-        print("User.log_in() called.")
-        self.logged_in = True
-
-class Student(User):
-    def log_in(self):
-        print("Student.log_in() called.")
-        super().log_in()
-        self.in_class = True
-
-oneil = Student()
-oneil.log_in()
-# "Student.log_in() called."
-# "User.log_in() called."
-# True
+hello("Guido")
+# Starting hello() function.
+# <function hello.<locals>.greet at 0x103287b80>
 ```
 
-As you can see by the output of running `log_in()` on a `Student` instance, the
-`super` keyword calls the specified method in the parent class, adding the
-functionality of the original method to your new method in a single line.
+By returning `greet()` without parentheses, `hello()` is returning the function
+itself so that we can use it later on. When we're ready to invoke it later on,
+we can do so with parentheses as we would with any other function:
 
-<details><summary><em>All this talk about superclassses! What do we call the
-class that inherits from a superclass?</em></summary>
+```py
+hello("Guido")()
+# Hello from the hello() function.
+# Greetings from the greet() function.
+```
+
+<details><summary>What would be the output of the code above if
+<code>return greet</code> were left out?</summary>
 <p>
 
-<h3>Subclasses (or children!)</h3>
+<h3>Hello from the hello() function.</h3>
+
+<p>While there's a <code>print()</code> statement inside of the
+<code>greet()</code> function, it won't be interpreted if <code>greet()</code>
+is not invoked.</p>
 
 </p>
 </details>
@@ -127,82 +114,122 @@ class that inherits from a superclass?</em></summary>
 
 ***
 
-## Calling `super` With Arguments
+## Writing Your First Decorator
 
-The `log_in()` method defined above didn't take any arguments, but often, we'll
-need to call methods and provide some data as arguments. For example, let's
-modify our `User` class to give it a `name` attribute:
+To write your first **decorator**, you'll need to tie all of these concepts
+together. You will need to write a function that...
 
-```py
-class User:
-    def __init__(self, name):
-        self.name = name
+1. Takes a function as an argument.
+2. Has an inner function defined inside of it.
+3. Returns the inner function.
 
-    def log_in(self):
-        self.logged_in = True
-```
-
-Let's also modify our `Student` class so that it can be initialized with a
-`name` and a `grade` attribute:
+Open up the Python shell and enter the following code:
 
 ```py
-class Student(User):
-    def __init__(self, name, grade)
-        self.name = name
-        self.grade = grade
+def decorator(func):
+    def wrapper():
+        print("I am the output that lets you know the function is about to be called.")
+        func()
+        print("I am the output that lets you know the function has been called.")
+    return wrapper
 
-
-    def log_in(self):
-        super().log_in()
-        self.in_class = True
+def get_called():
+    print("I am the function and I am being called.")
 ```
 
-While we can still create new students with our updated class definition, it's
-not particularly DRY — both the `Student` and `User` classes define a `name`
-instance variable and set it when an the class is instantiated.
-
-Ideally, we'd like to be able to call the `__init__` method on the `User`
-class when a new student is created.
-
-`super` lets us do just that! We can call `super` with an argument from the
-`Student.__init__` method, which will call the `User.__init__` method with
-that argument. Try updating the example code like so:
+We've created a decorator and we've created a function to pass in. All that's
+left to do is put it all together:
 
 ```py
-class User:
-    def __init__(self, name):
-        print("User.__init__ called.")
-        self.name = name
-
-    def log_in(self):
-        self.logged_in = True
-
-class Student(User):
-    def __init__(self, name, grade):
-        print("Student.__init__ called.")
-        super().__init__(name)
-        self.grade = grade
-
-    def log_in(self):
-        super().log_in()
-        self.in_class = True
-
-oneil = Student("O'neil", 10)
-# Student.__init__ called.
-# User.__init__ called.
-oneil.__dict__
-# {'name': "O'neil", 'grade': 10}
+get_called = decorator(get_called)
+get_called()
+# I am the output that lets you know the function is about to be called.
+# I am the function and I am being called.
+# I am the output that lets you know the function has been called.
 ```
 
-Just like in the previous example, `super` is used to call a method on the
-superclass from the subclass — the only difference is that this time we are
-passing in arguments that are required by the method defined in the superclass.
+Python allows us to perform the decoration step in a more decorative fashion
+with the `@` symbol. This is also called _"pie syntax"_.
 
-<details><summary><em><code>__init__</code> is the method that uses
-<code>super()</code> the most. Why do you think that is?</em></summary>
+```py
+@decorator
+def get_called():
+    print("I am the function and I am being called.")
+
+get_called()
+# I am the output that lets you know the function is about to be called.
+# I am the function and I am being called.
+# I am the output that lets you know the function has been called.
+```
+
+***
+
+## When To Use Decorators
+
+The primary function of decorators is reducing the amount of code that you need
+to write in your applications. If you find yourself reusing a lot of the same
+code in different functions, that's a great opportunity to use decorators. If
+you're only doing something once or twice, decorators might be overkill.
+
+Let's look at an example of when we _would_ want to use decorators.
+
+```py
+def sweep_floors(time):
+    if 1100 < time < 2100:
+        print("Sweeping the floors...")
+    else:
+        print("I'm off duty!")
+
+def wash_dishes(time):
+    if 1100 < time < 2100:
+        print("Washing the dishes...")
+    else:
+        print("I'm off duty!")
+
+def chop_vegetables(time):
+    if 1100 < time < 2100:
+        print("Chopping the vegetables...")
+    else:
+        print("I'm off duty!")
+```
+
+There's a pretty clear pattern here: our employees only work from 11 to 9!
+Including code in every single function to check if anyone's working is not
+ideal. Let's refactor this with a decorator:
+
+```py
+def check_working_hours(func):
+    def wrapper(time):
+        if 1100 < time < 2100:
+            func(time)
+        else:
+            print("I'm off duty!")
+    return wrapper
+
+@check_working_hours
+def sweep_floors(time):
+    print("Sweeping the floors...")
+
+@check_working_hours
+def wash_dishes(time):
+    print("Washing the dishes...")
+
+@check_working_hours
+def chop_vegetables(time):
+    print("Chopping the vegetables...")
+
+sweep_floors(800)
+# I'm off duty!
+wash_dishes(1000)
+# I'm off duty!
+chop_vegetables(1200)
+# Chopping the vegetables...
+```
+
+<details><summary>What are the two options for invoking a decorator?</summary>
 <p>
 
-<h3>Every class has an <code>__init__</code> method.</h3>
+<h3>A <code>function_call()</code> or <code>@pie_syntax</code>.</h3>
 
 </p>
 </details>
@@ -212,9 +239,11 @@ passing in arguments that are required by the method defined in the superclass.
 
 ## Conclusion
 
-Often when you are dealing with code that involves inheritance, you'll need
-to augment the functionality defined in the superclass with some additional
-behavior in the subclass. The `super` keyword allows you to do just that!
+Functions are first-class objects in Python. This means that they can be
+passed as arguments to other functions, created inside of other functions
+(as _inner functions_), and returned by other functions. Decorators leverage
+these features to allow us to avoid repetitive code and are an important tool
+in any Python programmer's toolbox.
 
 ***
 
@@ -222,4 +251,4 @@ behavior in the subclass. The `super` keyword allows you to do just that!
 
 - [Python 3.8 Documentation](https://docs.python.org/3.8/)
 - [Inheritance - Python](https://docs.python.org/3/tutorial/classes.html#inheritance)
-- [Supercharge Your Classes With Python super() - Real Python](https://realpython.com/python-super/)
+- [Decorators in Python - GeeksforGeeks](https://www.geeksforgeeks.org/decorators-in-python/)
