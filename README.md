@@ -84,7 +84,7 @@ function?
 
 ```py
 hello("Guido")
-# Starting hello() function.
+# Hello from the hello() function. 
 # <function hello.<locals>.greet at 0x103287b80>
 ```
 
